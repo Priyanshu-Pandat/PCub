@@ -1,0 +1,45 @@
+package com.PCub.APIGateWay.JwtUtil;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import org.springframework.stereotype.Component;
+
+import java.nio.charset.StandardCharsets;
+
+@Component
+public class JwtUtil {
+
+    private final String SECRET = "dhurrah-secret-key-that-is-at-least-64-characters-long-dhurrah123456789"; // 🔐 Strong secret in prod
+    private final JwtParser parser = Jwts.parser()
+            .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8));  // Consistent usage of bytes
+
+    // Validate token
+    public boolean validateToken(String token) {
+        try {
+            parser.parseClaimsJws(token);
+            return true;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // Get username (or email) from token
+    public String extractUsername(String token) {
+        return extractClaims(token).getSubject();
+    }
+
+    // Get user ID (assuming stored as "userId" claim)
+    public Integer extractUserId(String token) {
+        Claims claims = extractClaims(token);
+        return ((Number) claims.get("userId")).intValue();
+    }
+
+    private Claims extractClaims(String token) {
+        return Jwts.parser()
+                .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8))  // Also consistent here
+                .parseClaimsJws(token)
+                .getBody();
+    }
+}
