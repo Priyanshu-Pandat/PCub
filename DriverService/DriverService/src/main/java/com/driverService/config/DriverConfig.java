@@ -17,11 +17,11 @@ public class DriverConfig {
 
     @Bean
     public Cloudinary getCloudinary() {
-        Map mp = new HashMap();
-        mp.put("cloud_name", "dixp2snwc");
-        mp.put("api_key", "746938466252928");
-        mp.put("api_secret", "Jzjt2MsMGRREx94CFcoVA_TIXoo");
-        mp.put("secure", true);
-        return new Cloudinary(mp);
+        Map<String, Object> config = new HashMap<>();
+        config.put("cloud_name", System.getenv("CLOUDINARY_CLOUD_NAME"));
+        config.put("api_key", System.getenv("CLOUDINARY_API_KEY"));
+        config.put("api_secret", System.getenv("CLOUDINARY_API_SECRET"));
+        config.put("secure", true);
+        return new Cloudinary(config);
     }
 }
