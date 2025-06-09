@@ -20,26 +20,6 @@ public class SwaggerConfig {
                         .version("1.0").description("APIs for PCUB  Application"));
     }
 
-    @Configuration
-    public class MailConfig {
-
-        @Bean
-        public JavaMailSender javaMailSender() {
-            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-            mailSender.setHost("smtp.gmail.com");
-            mailSender.setPort(587); // or 465 for SSL
-            mailSender.setUsername("team.pcub@gmail.com"); // Replace with your email
-            mailSender.setPassword("zfvq pbuk gxeh akwp");    // Use Gmail App Password
-
-            Properties props = mailSender.getJavaMailProperties();
-            props.put("mail.transport.protocol", "smtp");
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true"); // For TLS
-            props.put("mail.debug", "true"); // Optional: log mail session
-
-            return mailSender;
-        }
-    }
 
     @Bean
     public ModelMapper modelMapper() {
