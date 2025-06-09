@@ -6,23 +6,23 @@ spring:
     name: RIDE-SERVICE
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/ride-service-Db
-    username: postgres
-    password: 1720
+    url: ${POSTGRES_URL}
+    username: ${POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update     # Use validate or none in production
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
 
   redis:
-    host: localhost
-    port: 6379
-    timeout: 60000
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    timeout: ${REDIS_TIMEOUT}
 
   cache:
     type: redis
@@ -30,12 +30,12 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_ADDRESS:http://localhost:8761/eureka}
+      defaultZone: ${EUREKA_SERVER_ADDRESS}
     register-with-eureka: true
     fetch-registry: true
 
 api-gateway:
-  url: http://localhost:8080  # Replace with actual API Gateway if needed
+  url: ${API_GATEWAY_URL}
 
 logging:
   level:
