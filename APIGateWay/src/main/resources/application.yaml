@@ -34,8 +34,8 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "http://localhost:5173"
-              - "http://localhost:5174"
+              - ${FRONT_END_1_URL}
+              - ${FRONT_END_2_URL}
             allowedMethods:
               - GET
               - POST

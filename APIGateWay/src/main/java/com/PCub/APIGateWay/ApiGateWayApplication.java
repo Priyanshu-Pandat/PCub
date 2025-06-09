@@ -1,5 +1,7 @@
 package com.PCub.APIGateWay;
 
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -26,5 +28,17 @@ public class ApiGateWayApplication {
 			return chain.filter(exchange);
 		};
 	}
+	@Value("${FRONT_END_1_URL}")
+	private String frontendUrl1;
+
+	@Value("${FRONT_END_2_URL}")
+	private String frontendUrl2;
+
+	@PostConstruct
+	public void init() {
+		System.out.println("Frontend URL 1: " + frontendUrl1);
+		System.out.println("Frontend URL 2: " + frontendUrl2);
+	}
+
 
 }
