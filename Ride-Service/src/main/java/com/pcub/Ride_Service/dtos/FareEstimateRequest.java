@@ -7,7 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Location {
-    Double latitude;
-    Double longitude;
+public class FareEstimateRequest {
+    private String sourcePlaceId;
+    private String destinationPlaceId;
+    private String promoCode;
 }
