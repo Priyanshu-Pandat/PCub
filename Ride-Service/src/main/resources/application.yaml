@@ -27,6 +27,9 @@ spring:
   cache:
     type: redis
 
+weather:
+ key: ${WEATHER_APIKEY}
+
 eureka:
   client:
     service-url:
@@ -36,6 +39,9 @@ eureka:
 
 api-gateway:
   url: ${API_GATEWAY_URL}
+ors:
+  api:
+    key: ${ORS_API_KEY}
 
 logging:
   level:

@@ -10,10 +10,12 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class VehicleOptionDto {
+public class FareWithVehicleAndReason {
     private VehicleType vehicleType; // bike / auto / car
-    private double estimatedPrice;
-    private int estimatedArrivalTime; // in minutes
-    private List
+    private int estimatedPrice;
+    private int estimatedArrivalTime;
+    private List<String> reasons;
+
+
 
 }

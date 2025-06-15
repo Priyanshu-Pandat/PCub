@@ -10,6 +10,9 @@ public class ApiResponse<T> {
     private boolean success;
     private T data;
     private String message;
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(true, data, "OK");
+    }
 }
 
 

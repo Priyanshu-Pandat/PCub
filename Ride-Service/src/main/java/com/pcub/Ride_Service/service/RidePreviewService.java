@@ -1,9 +1,9 @@
 package com.pcub.Ride_Service.service;
 
-import com.pcub.Ride_Service.dtos.RidePreviewDto;
+import com.pcub.Ride_Service.dtos.FinalFareEstimateResponse;
 import org.springframework.stereotype.Service;
 
 @Service
 public interface RidePreviewService {
-    RidePreviewDto generateRidePreview(String sourcePlaceId, String destinationPlaceId);
+    FinalFareEstimateResponse generateRidePreview(String sourcePlaceId, String destinationPlaceId);
 }

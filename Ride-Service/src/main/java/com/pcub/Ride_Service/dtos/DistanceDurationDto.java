@@ -7,8 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FareEstimateRequest {
-    private String sourcePlaceId;
-    private String destinationPlaceId;
-    private String promoCode;
+public class DistanceDurationDto {
+    private double distanceKm;
+    private int durationMin;
 }

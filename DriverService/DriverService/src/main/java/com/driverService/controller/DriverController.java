@@ -52,6 +52,7 @@ public class DriverController {
                                                        @RequestHeader("X-User-Id") Long driverId) {
         log.info("upload on cloud method calling on Controller");
          String url = driverDocumentService.handleUpload(file,documentType,driverId);
+
          return ResponseEntity.ok(url);
     }
 

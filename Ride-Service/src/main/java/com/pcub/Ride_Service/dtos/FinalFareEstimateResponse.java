@@ -9,11 +9,12 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class FareEstimateFinalResponse {
+public class FinalFareEstimateResponse {
     private ResolvedLocationDto source;
     private ResolvedLocationDto destination;
     private double distanceInKm;
     private int durationInMin;
     private List<FareWithVehicleAndReason> vehicleOptions;
+    private String reasons;
 }
 

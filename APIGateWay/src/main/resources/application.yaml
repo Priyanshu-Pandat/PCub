@@ -36,6 +36,7 @@ spring:
             allowedOrigins:
               - ${FRONT_END_1_URL}
               - ${FRONT_END_2_URL}
+              - ${FRONT_END_APP_URL}
             allowedMethods:
               - GET
               - POST
