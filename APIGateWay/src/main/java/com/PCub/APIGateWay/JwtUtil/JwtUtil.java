@@ -3,6 +3,7 @@ package com.PCub.APIGateWay.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,8 +13,14 @@ import java.nio.charset.StandardCharsets;
 public class JwtUtil {
     @Value("${jwt.secret.key}")
     private  String SECRET ; // 🔐 Strong secret in prod
-    private final JwtParser parser = Jwts.parser()
-            .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8));  // Consistent usage of bytes
+    private JwtParser parser;
+
+    @PostConstruct
+    public void init() {
+        // now SECRET will be injected and not null
+        parser = Jwts.parser()
+                .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8));
+    }
 
     // Validate token
     public boolean validateToken(String token) {
@@ -38,9 +45,6 @@ public class JwtUtil {
     }
 
     private Claims extractClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8))  // Also consistent here
-                .parseClaimsJws(token)
-                .getBody();
+        return parser.parseClaimsJws(token).getBody();  // ✅ corrected here
     }
 }
