@@ -15,9 +15,9 @@ services:
       - key: REDIS_HOST
         value: maximum-gnat-13969.upstash.io
       - key: REDIS_PORT
-        value: 6379
+        value: "6379"
       - key: REDIS_TIMEOUT
-        value: 5000
+        value: "5000"
       - key: JWT_SECRET_DRIVER
         value: dhurrah-secret-key-that-is-at-least-64-characters-long-dhurrah123456789
       - key: EUREKA_SERVER_ADDRESS
