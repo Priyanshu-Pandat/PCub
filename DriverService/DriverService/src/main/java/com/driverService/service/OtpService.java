@@ -46,13 +46,14 @@ private RedisTemplate<String, String> redisTemplate;
 
     private static final int OTP_EXPIRE_MINUTES = 1;
 
-    public void sendOtp(String number) {
+    public String sendOtp(String number) {
         String otp = String.valueOf(new Random().nextInt(9000) + 1000);
         log.info("Generated OTP for {}: {}", number, otp);
 
         // Save to Redis with expiry
         String redisKey = "OTP:" + number;
         redisTemplate.opsForValue().set(redisKey, otp, OTP_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        return otp;
     }
 
     public boolean verifyOtp(String number, String driverOtp) {

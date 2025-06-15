@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: driver-service
+    runtime: docker
+    repo: https://github.com/your-username/your-driver-service-repo
+    branch: main
+    rootDir: .
+    plan: free
+    autoDeploy: true
+
+    envVars:
+      - key: MYSQL_DRIVER_DB_URL
+        value: jdbc:mysql://mysql.railway.internal:3306/railway
+      - key: MYSQL_DRIVER_USERNAME
+        value: root
+      - key: MYSQL_DRIVER_PASSWORD
+        value: GJhVbkjBonzsXUtSyBPqMqYziUDEVVSs
+
+      - key: REDIS_HOST
+        value: maximum-gnat-13969.upstash.io
+      - key: REDIS_PORT
+        value: 6379
+      - key: REDIS_TIMEOUT
+        value: 60000
+
+      - key: JWT_SECRET_DRIVER
+        value: dhurrah-secret-key-that-is-at-least-64-characters-long-dhurrah123456789  # Change this to your actual secret key
+
+      - key: EUREKA_SERVER_ADDRESS
+        value: https://apigateway-twdm.onrender.com/eureka

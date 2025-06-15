@@ -36,8 +36,8 @@ public class OtpController {
     @PostMapping("/sendOtp")
     public ResponseEntity<?> sendOtp(@Valid @RequestBody  OtpDriverReq otpDriverReq) {
         log.info("call driver controller");
-        otpService.sendOtp(otpDriverReq.getNumber());
-        return ResponseEntity.ok("OTP Sent SuccessFully");
+      String otp =   otpService.sendOtp(otpDriverReq.getNumber());
+        return ResponseEntity.ok("The otp is "+ otp);
     }
 
     @PostMapping("/verifyOtp")
