@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: api-gateway
+    env: linux
+    buildCommand: |
+      curl -s "https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.tar.gz" | tar xz
+      ./jdk-21*/bin/java -version
+      ./jdk-21*/bin/java -Dmaven.multiModuleProjectDirectory=$PWD -jar .mvn/wrapper/maven-wrapper.jar clean install -DskipTests
+    startCommand: ./jdk-21*/bin/java -jar target/APIGateWay-0.0.1-SNAPSHOT.jar
+    envVars:
+      - key: EUREKA_URL
+        value: https://pcub-2-98ux.onrender.com/eureka
+      - key: FRONT_END_1_URL
+        value: http://localhost:5173
+      - key: FRONT_END_2_URL
+        value: http://localhost:5174
+      - key: FRONT_END_APP_URL
+        value: http://localhost:8081
+      - key: JWT_SECRET
+        value: your_jwt_secret_here
+    autoDeploy: true
+    plan: free

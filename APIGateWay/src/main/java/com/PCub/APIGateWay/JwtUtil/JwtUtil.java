@@ -3,14 +3,15 @@ package com.PCub.APIGateWay.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 
 @Component
 public class JwtUtil {
-
-    private final String SECRET = "dhurrah-secret-key-that-is-at-least-64-characters-long-dhurrah123456789"; // 🔐 Strong secret in prod
+    @Value("${jwt.secret.key}")
+    private  String SECRET ; // 🔐 Strong secret in prod
     private final JwtParser parser = Jwts.parser()
             .setSigningKey(SECRET.getBytes(StandardCharsets.UTF_8));  // Consistent usage of bytes
 
