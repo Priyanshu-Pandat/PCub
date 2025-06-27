@@ -72,8 +72,8 @@ public class Ride {
     @Enumerated(EnumType.STRING)
     private RideStatus status;
 
-    @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
+   // @Enumerated(EnumType.STRING)
+    //private PaymentMethod paymentMethod;
 
     private Boolean isPaymentCompleted;
 

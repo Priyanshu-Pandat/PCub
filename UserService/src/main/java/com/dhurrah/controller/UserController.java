@@ -1,5 +1,7 @@
 package com.dhurrah.controller;
 
+import com.cloudinary.Api;
+import com.dhurrah.model.ApiResponse;
 import com.dhurrah.model.UserDto;
 import com.dhurrah.model.Response;
 import com.dhurrah.service.UserService;
@@ -18,11 +20,12 @@ public class UserController {
     private UserService userService;
 
     @PostMapping("/profile-setup/add")
-    public ResponseEntity<Response> createUser(@Valid @RequestBody UserDto userDto, @RequestHeader("X-User-Id")  Integer userId) {
+    public ResponseEntity<ApiResponse<Boolean>> createUser(@Valid @RequestBody UserDto userDto, @RequestHeader("X-User-Id")  Integer userId) {
         log.info("creating User with this id :  {}", userId);
-        this.userService.createUser(userDto,userId);
+      boolean isUserSaved =   this.userService.createUser(userDto,userId);
+        return ResponseEntity.ok(new ApiResponse<>(true, isUserSaved, "User Created successfully"));
 
-        return new ResponseEntity<>(new Response("User create SuccessFully"), HttpStatus.CREATED);
+
     }
 
 }

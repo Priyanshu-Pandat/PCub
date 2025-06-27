@@ -18,7 +18,7 @@ public class UserServiceImpl implements UserService{
     @Autowired
     private ModelMapper modelMapper;
     @Override
-    public void createUser(UserDto userDto,Integer userId) {
+    public boolean createUser(UserDto userDto,Integer userId) {
         User user = userRepo.findById(Long.valueOf(userId)).orElseThrow(
                 () -> new UserException("User not found with ID: " , "USER_NOT_FOUND")
         );
@@ -26,10 +26,12 @@ public class UserServiceImpl implements UserService{
         user.setAge(userDto.getAge());
         user.setGender(userDto.getGender());
         user.setEmail(userDto.getEmail());
-
+        user.setProfileCompleted(true);
         userRepo.save(user); // Save updated user
-
         log.info("User updated successfully: {}", user);
+
+        return true;
+
     }
 
     @Override

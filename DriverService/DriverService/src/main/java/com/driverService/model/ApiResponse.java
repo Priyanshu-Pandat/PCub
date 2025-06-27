@@ -2,11 +2,18 @@ package com.driverService.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
-public class ApiResponse {
+@NoArgsConstructor
+public class ApiResponse<T> {
     private boolean success;
+    private T data;
     private String message;
-    private Object data;
+    public static <T> ApiResponse<T> success(T data) {
+        return new ApiResponse<>(true, data, "OK");
+    }
+
 }
+

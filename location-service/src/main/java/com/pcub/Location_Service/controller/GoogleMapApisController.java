@@ -1,7 +1,6 @@
 package com.pcub.Location_Service.controller;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.pcub.Location_Service.DTOs.ResolvedLocationDto;
 import com.pcub.Location_Service.DTOs.SuggestionDto;
 import com.pcub.Location_Service.modal.ApiResponse;

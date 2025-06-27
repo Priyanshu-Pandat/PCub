@@ -28,6 +28,9 @@ public class GatewayConfig {
                 .route("location-service", r -> r.path("/location/**")
                         .filters(f -> f.filter(jwtFilter))
                         .uri("lb://LOCATION-SERVICE"))
+                .route("ride-service", r -> r.path("/ride/**")
+                        .filters(f -> f.filter(jwtFilter))
+                        .uri("lb://RIDE-SERVICE"))
                 .build();
 
     }

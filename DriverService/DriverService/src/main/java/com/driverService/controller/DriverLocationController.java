@@ -5,15 +5,16 @@ import com.driverService.model.DriverDistance;
 import com.driverService.model.DriverLocationUpdateDTO;
 import com.driverService.model.DriverStatusUpdateRequestDTO;
 import com.driverService.service.DriverLocationService;
+import com.driverService.service.RideSessionService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/driver")
@@ -22,11 +23,29 @@ public class DriverLocationController {
 
     @Autowired
     private DriverLocationService driverLocationService;
+    @Autowired
+    private RideSessionService rideSessionService; // uses Redis
 
+    @PostMapping("/update-location")
+      public ResponseEntity<ApiResponse> updateLocation(
+                                   @RequestHeader("X-User-Id") Long driverId,
+                                   @Valid @RequestBody  DriverLocationUpdateDTO dto) {
+        DriverLocationUpdateDTO position = driverLocationService.updateDriverLocation(driverId, dto);
+
+        String rideId = rideSessionService.getRideIdForDriver(driverId);
+        log.info("Received DTO: lat={}, lon={}",
+                dto.getLatitude(), dto.getLongitude());
+
+        if (rideId != null) {
+            // kuch krna h location update krande ke liye
+        }
+          return ResponseEntity.ok(
+                  new ApiResponse(true, position ,"Driver status updated successfully")
+          );
+      }
 
 
     @PostMapping("/status")
-    @CircuitBreaker(name = "driverService", fallbackMethod = "statusUpdateFallback")
     public ResponseEntity<ApiResponse> updateStatus(
             @RequestHeader("X-User-Id") Long driverId,
             @Valid @RequestBody DriverStatusUpdateRequestDTO dto) {
@@ -34,41 +53,10 @@ public class DriverLocationController {
         log.info("Status update request for driver: {}", driverId);
         driverLocationService.updateDriverStatus(driverId, dto);
         return ResponseEntity.ok(
-                new ApiResponse(true, "Driver status updated successfully", null)
-        );
-    }
-    @PostMapping("/location")
-    public ResponseEntity<ApiResponse> updateLocation(
-            @RequestHeader("X-User-Id") Long driverId,
-            @Valid @RequestBody DriverLocationUpdateDTO dto) {
-
-        DriverLocationUpdateDTO position = driverLocationService.updateDriverLocation(driverId, dto);
-        return ResponseEntity.ok(
-                new ApiResponse(true, "Location updated", position)
+                new ApiResponse(true,null ,"Driver status updated successfully")
         );
     }
 
-    @GetMapping("/nearby")
-    public ResponseEntity<ApiResponse> getNearbyDrivers(
-            @RequestParam double latitude,
-            @RequestParam double longitude,
-            @RequestParam double radius,
-            @RequestParam(required = false) String vehicleType,
-            @RequestParam(defaultValue = "10") int limit) {
 
-        List<DriverDistance> drivers = driverLocationService.findNearbyDrivers(
-                latitude, longitude, radius, vehicleType, limit);
-
-        return ResponseEntity.ok(
-                new ApiResponse(true, "Nearby drivers found", drivers)
-        );
-    }
-
-    // Fallback method for circuit breaker
-    private ResponseEntity<ApiResponse> statusUpdateFallback(
-            Long driverId, DriverStatusUpdateRequestDTO dto, Exception e) {
-        log.error("Fallback triggered for driver {}: {}", driverId, e.getMessage());
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(new ApiResponse(false, "Service unavailable. Your request will be processed later.", null));
-    }
 }
+

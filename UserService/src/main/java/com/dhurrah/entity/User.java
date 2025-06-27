@@ -34,6 +34,8 @@ public class User {
 
     private LocalDateTime updatedAt;
 
+    private  boolean isProfileCompleted ;
+
 
     @PrePersist
     protected void onCreate() {

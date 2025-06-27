@@ -88,7 +88,7 @@ private RedisTemplate<String, String> redisTemplate;
     private static final int EXPIRE_MINUTES = 2;
     private static final SecureRandom secureRandom = new SecureRandom();
 
-    public void sendOtp(String identifier) {
+    public String sendOtp(String identifier) {
         String otp = String.valueOf(secureRandom.nextInt(9000) + 1000);
 
         log.info("Generated OTP for {}: {}", identifier, otp);
@@ -99,6 +99,7 @@ private RedisTemplate<String, String> redisTemplate;
         if (isEmail(identifier)) {
             sendOtpEmail(identifier, otp);
         }
+        return otp ;
     }
 
     public boolean verifyOtp(String identifier, String userOtp) {

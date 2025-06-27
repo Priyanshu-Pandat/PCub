@@ -43,24 +43,25 @@ public class RidePreviewServiceImpl implements RidePreviewService {
     public FinalFareEstimateResponse generateRidePreview(String sourcePlaceId, String destinationPlaceId) {
         try {
             // Resolve coordinates
-           ///// ResponseEntity<ApiResponse<Map<String, ResolvedLocationDto>>> response =
+            ResponseEntity<ApiResponse<Map<String, ResolvedLocationDto>>> response =
                     locationClient.resolvePlaceIds(sourcePlaceId, destinationPlaceId);
-        // log.info("map api called and get response:{}",response);
+            log.info("map api called and get response:{}", response);
 
-          //  if (response.getBody() == null || response.getBody().getData() == null) {
-              ///  throw new LocationServiceException("Failed to resolve location coordinates", 502);
-         //   }
+            if (response.getBody() == null || response.getBody().getData() == null) {
+                throw new LocationServiceException("Failed to resolve location coordinates", 502);
+            }
 
-          //  Map<String, ResolvedLocationDto> coordinatesMap = response.getBody().getData();
-            Map<String, ResolvedLocationDto> coordinatesMap = new HashMap<>();
+
+           Map<String, ResolvedLocationDto> coordinatesMap = response.getBody().getData();
+            //Map<String, ResolvedLocationDto> coordinatesMap = new HashMap<>();
 
        //from 56 to 62 are hardcoded and 54 also hardcoded
-            coordinatesMap.put("source", new ResolvedLocationDto(
-                    sourcePlaceId, 26.82420, 75.81220
-            ));
-            coordinatesMap.put("destination", new ResolvedLocationDto(
-                    destinationPlaceId, 26.9062, 75.8163
-            ));
+//            coordinatesMap.put("source", new ResolvedLocationDto(
+//                    sourcePlaceId, 26.9239, 75.8267
+//            ));
+//            coordinatesMap.put("destination", new ResolvedLocationDto(
+//                    destinationPlaceId, 26.9062, 75.8163
+//            ));
             ResolvedLocationDto source = coordinatesMap.get("source");
             ResolvedLocationDto destination = coordinatesMap.get("destination");
 
@@ -76,13 +77,14 @@ public class RidePreviewServiceImpl implements RidePreviewService {
             log.info("distance service called and get : {}",distanceKm);
 
             int durationMin = dt.getDurationMin();
+            DynamicPricingConditions conditions = getDynamicConditions(source,destination);
 
             // Generate fare options for all vehicle types
             List<FareWithVehicleAndReason> options = new ArrayList<>();
             for (VehicleType vehicleType : VehicleType.values()) {
                 try {
                     FareWithVehicleAndReason fareOption = calculateFareForVehicle(
-                            vehicleType, distanceKm, durationMin, source,destination
+                            vehicleType, distanceKm, durationMin, source,destination,conditions
                     );
                     options.add(fareOption);
                 } catch (FareCalculationException e) {
@@ -109,15 +111,14 @@ public class RidePreviewServiceImpl implements RidePreviewService {
     /**
      * Calculate fare for a specific vehicle type with dynamic pricing
      */
-    private FareWithVehicleAndReason calculateFareForVehicle(VehicleType type, double km, int min, ResolvedLocationDto source,ResolvedLocationDto destination) {
+    private FareWithVehicleAndReason calculateFareForVehicle(VehicleType type, double km, int min, ResolvedLocationDto source,
+                                                             ResolvedLocationDto destination,DynamicPricingConditions conditions) {
         // Base fare calculation
         double baseFare = getBaseFare(type);
         double perKmRate = getPerKmRate(type);
         double perMinRate = getPerMinRate(type);
         double standardFare = baseFare + (km * perKmRate) + (min * perMinRate);
 
-        // Get dynamic conditions
-        DynamicPricingConditions conditions = getDynamicConditions(source,destination);
 
 
         // Apply surcharges and get reasons
@@ -143,11 +144,12 @@ public class RidePreviewServiceImpl implements RidePreviewService {
      */
     private DynamicPricingConditions getDynamicConditions(ResolvedLocationDto source,ResolvedLocationDto destination) {
         try {
-            boolean isRainy = weatherService.isBadWeather(source.getLatitude(), source.getLongitude());
+            boolean isRainy = weatherService.isBadWeather(source.getLatitude(), source.getLongitude()) ||
+                              weatherService.isBadWeather(destination.getLatitude(), destination.getLongitude());
+
             log.info("weather service called with response:{}",isRainy);
-            boolean isZoneSurchargeS = zoneService.isExpensiveZone(source.getLatitude(), source.getLongitude());
-            boolean isZoneSurchargeD = zoneService.isExpensiveZone(destination.getLatitude(), destination.getLongitude());
-            boolean isZoneSurcharge = isZoneSurchargeS || isZoneSurchargeD;
+            boolean isZoneSurcharge = zoneService.isExpensiveZone(source.getLatitude(), source.getLongitude()) ||
+                                      zoneService.isExpensiveZone(destination.getLatitude(), destination.getLongitude());
 
             boolean isNight = zoneService.isNightTime();
             boolean isPeakHour = zoneService.isPeakTime();
@@ -167,7 +169,7 @@ public class RidePreviewServiceImpl implements RidePreviewService {
         List<String> reasons = new ArrayList<>();
 
         if (conditions.isRainy()) {
-            multiplier += 0.15; // 20% extra for rain
+            multiplier += 0.11; // 20% extra for rain
             reasons.add("Weather Surcharge");
         }
 
@@ -182,7 +184,7 @@ public class RidePreviewServiceImpl implements RidePreviewService {
         }
 
         if (conditions.isPeakHour()) {
-            multiplier += 0.05; // 7% extra for peak hours
+            multiplier += 0.07; // 7% extra for peak hours
             reasons.add("Peak Hour Charge");
         }
 
@@ -209,11 +211,11 @@ public class RidePreviewServiceImpl implements RidePreviewService {
 
     private double getBaseFare(VehicleType type) {
         return switch (type) {
-            case BIKE -> 10.0;
-            case AUTO -> 15.0;
-            case E_RICKSHAW -> 12.5;
+            case BIKE -> 15.0;
+            case AUTO -> 20.0;
+            case E_RICKSHAW -> 17.0;
             case CAB_ECONOMY -> 35.0;
-            case CAR_PREMIUM -> 60.0;
+            case CAR_PREMIUM -> 50.0;
         };
     }
 
@@ -229,7 +231,7 @@ public class RidePreviewServiceImpl implements RidePreviewService {
 
     private double getPerMinRate(VehicleType type) {
         return switch (type) {
-            case BIKE -> 0.5;
+            case BIKE -> 0.6;
             case AUTO, E_RICKSHAW -> 0.7;
             case CAB_ECONOMY -> 1.0;
             case CAR_PREMIUM -> 1.2;

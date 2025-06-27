@@ -9,6 +9,7 @@ import com.dhurrah.repositores.UserRepo;
 import com.dhurrah.service.OtpService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -40,19 +41,22 @@ public class OTPController {
 
     @PostMapping("/send")
     @Operation(summary = "Send OTP") // Swagger annotation
-    public ResponseEntity<?> sendOtp(@RequestBody OTPRequest req) {
+    public ResponseEntity<?> sendOtp(@Valid  @RequestBody OTPRequest req) {
+       @Valid String identifier = req.getIdentifier();
         log.info("controller me req aa gyi : {} ",req.getIdentifier());
-        otpService.sendOtp(req.getIdentifier());
+      String otp =   otpService.sendOtp(identifier);
 
         return ResponseEntity.ok(Map.of("success",true ,
-                "message","OTP Sent SuccessFully"));
+                "message","OTP Sent SuccessFully and the otp is :" + otp));
 
     }
 
     @PostMapping(value = "/verify",produces = "application/json")
     @Operation(summary = "Verify OTP") // Swagger annotation
     public ResponseEntity<?> verifyOtp(@RequestBody VerifyOTP req) {
-        boolean isVerified = otpService.verifyOtp(req.getIdentifier(), req.getOtp());
+        @Valid String identifier = req.getIdentifier();
+        @Valid String otp = req.getOtp();
+        boolean isVerified = otpService.verifyOtp(identifier, otp);
 
         if (!isVerified) {
             log.info("OTP verification failed for identifier: {}", req.getIdentifier());
@@ -88,7 +92,7 @@ public class OTPController {
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(new LoginResponse(token, isNewUser));
+                .body(new LoginResponse(token, user.isProfileCompleted()));
 
     }
 }

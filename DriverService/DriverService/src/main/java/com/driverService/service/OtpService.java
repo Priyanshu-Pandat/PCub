@@ -53,12 +53,14 @@ private RedisTemplate<String, String> redisTemplate;
         // Save to Redis with expiry
         String redisKey = "OTP:" + number;
         redisTemplate.opsForValue().set(redisKey, otp, OTP_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        log.info("otp saved in redis with:{}",redisTemplate);
         return otp;
     }
 
     public boolean verifyOtp(String number, String driverOtp) {
         String redisKey = "OTP:" + number;
         String savedOtp = redisTemplate.opsForValue().get(redisKey);
+        log.info("called the otp verify in service class{}:",savedOtp);
 
         if (savedOtp == null) {
             log.info("OTP for {} expired or not found", number);

@@ -8,6 +8,7 @@ import com.driverService.model.DriverDistance;
 import com.driverService.model.DriverLocationUpdateDTO;
 import com.driverService.model.DriverStatusUpdateRequestDTO;
 import com.driverService.repository.DriverRepo;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.micrometer.core.annotation.Timed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,19 +21,13 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Queue;
+import java.time.Instant;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class DriverLocationService {
-
-//    private static final String DRIVER_LOCATION_KEY = "drivers:location";
-//    private static final String DRIVER_STATUS_KEY = "drivers:status";
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -40,123 +35,135 @@ public class DriverLocationService {
     @Autowired
     private DriverRepo driverRepository;
 
-    private static final String DRIVER_LOCATION_GEO_KEY = "drivers:geo";
     private static final String DRIVER_STATUS_HASH = "drivers:status";
     private static final String DRIVER_VEHICLE_HASH = "drivers:vehicle";
-
-
+    private static final String DRIVER_LAST_UPDATED = "drivers:lastUpdated";
+    private static final long DRIVER_TIMEOUT_SECONDS = 120;
 
     private final Queue<PendingLocationUpdate> pendingUpdates = new ConcurrentLinkedQueue<>();
 
-
-
+    // ✅ Driver sets ONLINE / OFFLINE
     @Timed(value = "driver.status.update")
-    public void updateDriverStatus(Long driverId, DriverStatusUpdateRequestDTO dto) {
-        // Validate driver exists
+    public DriverLocationUpdateDTO updateDriverStatus(Long driverId, DriverStatusUpdateRequestDTO dto) {
         driverRepository.findById(driverId).orElseThrow(() ->
                 new DriverNotFoundException("Driver not found: " + driverId));
 
+        String vehicleType = dto.getVehicleType().name();
+        String geoKey = "drivers:geo:" + vehicleType;
+
         if (dto.getAvailabilityStatus() == DriverAvailabilityStatus.ONLINE) {
-            // Transactional update
             redisTemplate.execute(new SessionCallback<Object>() {
                 @Override
                 public Object execute(RedisOperations operations) throws DataAccessException {
                     operations.multi();
                     operations.opsForHash().put(DRIVER_STATUS_HASH, driverId.toString(), "ONLINE");
-                    operations.opsForHash().put(DRIVER_VEHICLE_HASH, driverId.toString(), dto.getVehicleType().name());
-                    operations.opsForGeo().add(DRIVER_LOCATION_GEO_KEY,
+                    operations.opsForHash().put(DRIVER_VEHICLE_HASH, driverId.toString(), vehicleType);
+                    operations.opsForGeo().add(geoKey,
                             new Point(dto.getLongitude(), dto.getLatitude()),
                             driverId.toString());
+                    operations.opsForHash().put(DRIVER_LAST_UPDATED, driverId.toString(),
+                            String.valueOf(Instant.now().getEpochSecond()));
                     return operations.exec();
                 }
             });
-            log.info("Driver {} is now ONLINE at ({},{})", driverId, dto.getLatitude(), dto.getLongitude());
+            log.info("Driver {} is ONLINE at ({},{})", driverId, dto.getLatitude(), dto.getLongitude());
         } else {
-            redisTemplate.opsForHash().put(DRIVER_STATUS_HASH, driverId.toString(), "OFFLINE");
-            redisTemplate.opsForGeo().remove(DRIVER_LOCATION_GEO_KEY, driverId.toString());
+            removeDriverFromRedis(driverId);
             log.info("Driver {} is now OFFLINE", driverId);
         }
+        return new DriverLocationUpdateDTO(dto.getLatitude(), dto.getLongitude());
     }
 
+    // ✅ Driver sends location update
     @Timed(value = "driver.location.update")
+    @CircuitBreaker(name = "redisLocationCB", fallbackMethod = "fallbackLocationUpdate")
     public DriverLocationUpdateDTO updateDriverLocation(Long driverId, DriverLocationUpdateDTO dto) {
         try {
-            // Check if driver is online
             String status = (String) redisTemplate.opsForHash().get(DRIVER_STATUS_HASH, driverId.toString());
             if (!"ONLINE".equals(status)) {
                 throw new DriverNotAvailableException("Driver is not online");
             }
 
-            // Update location
+            String vehicleType = (String) redisTemplate.opsForHash().get(DRIVER_VEHICLE_HASH, driverId.toString());
+            if (vehicleType == null) {
+                throw new IllegalStateException("Vehicle type missing for driver " + driverId);
+            }
+
+            String geoKey = "drivers:geo:" + vehicleType;
             Point point = new Point(dto.getLongitude(), dto.getLatitude());
-            redisTemplate.opsForGeo().add(DRIVER_LOCATION_GEO_KEY, point, driverId.toString());
+
+            redisTemplate.opsForGeo().add(geoKey, point, driverId.toString());
+            redisTemplate.opsForHash().put(DRIVER_LAST_UPDATED, driverId.toString(),
+                    String.valueOf(Instant.now().getEpochSecond()));
 
             log.debug("Updated location for driver {}: {}", driverId, point);
-            return new DriverLocationUpdateDTO( dto.getLatitude(), dto.getLongitude());
+            return new DriverLocationUpdateDTO(dto.getLatitude(), dto.getLongitude());
 
         } catch (Exception e) {
-            log.error("Location update failed for driver {}, queuing for retry", driverId, e);
+            log.error("Location update failed for driver {}, queued", driverId, e);
             pendingUpdates.add(new PendingLocationUpdate(driverId, dto));
             throw new ServiceUnavailableException("Location update queued for retry");
         }
     }
 
-    @Timed(value = "driver.nearby.search")
-    public List<DriverDistance> findNearbyDrivers(
-            double latitude, double longitude,
-            double radius, String vehicleType, int limit) {
-
-        Circle area = new Circle(new Point(longitude, latitude),
-                new Distance(radius, Metrics.KILOMETERS));
-
-        // Include distance in results for proper sorting
-        RedisGeoCommands.GeoRadiusCommandArgs args = RedisGeoCommands.GeoRadiusCommandArgs
-                .newGeoRadiusArgs()
-                .includeDistance()  // This ensures we get distance information
-                .includeCoordinates()
-                .sortAscending()    // Sort by distance from center point
-                .limit(limit);      // Limit results
-
-        GeoResults<RedisGeoCommands.GeoLocation<String>> results =
-                redisTemplate.opsForGeo().radius(DRIVER_LOCATION_GEO_KEY, area, args);
-
-        List<DriverDistance> driverDistances = new ArrayList<>();
-
-        for (GeoResult<RedisGeoCommands.GeoLocation<String>> result : results) {
-            String driverId = result.getContent().getName();
-            double distance = result.getDistance().getValue();
-
-            // Check vehicle type if specified
-            if (vehicleType != null) {
-                String driverVehicle = (String) redisTemplate.opsForHash()
-                        .get(DRIVER_VEHICLE_HASH, driverId);
-                if (!vehicleType.equalsIgnoreCase(driverVehicle)) {
-                    continue;
-                }
-            }
-
-            driverDistances.add(new DriverDistance(Long.parseLong(driverId), distance));
-        }
-
-        return driverDistances;
-    }
-
-    @Scheduled(fixedRate = 30000) // Every 30 seconds
+    // ✅ Retry failed updates
+    @Scheduled(fixedRate = 30000)
     public void processPendingUpdates() {
         while (!pendingUpdates.isEmpty()) {
             PendingLocationUpdate update = pendingUpdates.poll();
             try {
                 updateDriverLocation(update.driverId(), update.dto());
-                log.info("Successfully processed queued update for driver {}", update.driverId());
+                log.info("Successfully retried location update for driver {}", update.driverId());
             } catch (Exception e) {
-                log.warn("Failed to process queued update for driver {}, will retry", update.driverId());
+                log.warn("Failed again for driver {}, re-queuing", update.driverId());
                 pendingUpdates.add(update);
                 break;
             }
         }
     }
 
+    // ✅ Auto-remove inactive drivers
+    @Scheduled(fixedRate = 60000)
+    public void removeInactiveDrivers() {
+        Map<Object, Object> lastUpdatedMap = redisTemplate.opsForHash().entries(DRIVER_LAST_UPDATED);
+        long now = Instant.now().getEpochSecond();
+
+        for (Map.Entry<Object, Object> entry : lastUpdatedMap.entrySet()) {
+            String driverId = (String) entry.getKey();
+            long lastUpdated = Long.parseLong((String) entry.getValue());
+
+            if (now - lastUpdated > DRIVER_TIMEOUT_SECONDS) {
+                log.warn("Driver {} inactive for {}s, removing...", driverId, now - lastUpdated);
+                removeDriverFromRedis(Long.parseLong(driverId));
+            }
+        }
+    }
+
+    // 🧹 Remove driver from Redis
+    private void removeDriverFromRedis(Long driverId) {
+        redisTemplate.execute(new SessionCallback<Object>() {
+            @Override
+            public Object execute(RedisOperations operations) throws DataAccessException {
+                String vehicleType = (String) redisTemplate.opsForHash().get(DRIVER_VEHICLE_HASH, driverId.toString());
+                if (vehicleType == null) vehicleType = "UNKNOWN";
+
+                String geoKey = "drivers:geo:" + vehicleType;
+
+                operations.multi();
+                operations.opsForHash().put(DRIVER_STATUS_HASH, driverId.toString(), "OFFLINE");
+                operations.opsForGeo().remove(geoKey, driverId.toString());
+                operations.opsForHash().delete(DRIVER_VEHICLE_HASH, driverId.toString());
+                operations.opsForHash().delete(DRIVER_LAST_UPDATED, driverId.toString());
+                return operations.exec();
+            }
+        });
+    }
+    public DriverLocationUpdateDTO fallbackLocationUpdate(Long driverId, DriverLocationUpdateDTO dto, Throwable t) {
+        log.warn("Redis failure, fallback location update");
+        pendingUpdates.add(new PendingLocationUpdate(driverId, dto));
+        return dto;
+    }
+
+
     private record PendingLocationUpdate(Long driverId, DriverLocationUpdateDTO dto) {}
 }
-
-

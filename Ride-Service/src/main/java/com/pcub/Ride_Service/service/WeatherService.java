@@ -34,6 +34,7 @@ public class WeatherService {
             double precipitation = current.getDouble("precip_mm");
 
             boolean isRainy = precipitation > 0;
+            log.info("is rain at :{} {} {}",isRainy ,lat ,lon);
             boolean isTooHot = temperature >= 47;
             boolean isTooCold = temperature <= 12;
             log.info("ths weather is {}{}{}:::",isRainy,isTooCold,isTooHot);

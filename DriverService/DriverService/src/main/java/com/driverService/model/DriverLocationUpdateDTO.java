@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-
 public class DriverLocationUpdateDTO {
 
     @DecimalMin(value = "-90.0", message = "Latitude must be >= -90.0")
@@ -21,3 +20,4 @@ public class DriverLocationUpdateDTO {
     private Double longitude;
 
 }
+

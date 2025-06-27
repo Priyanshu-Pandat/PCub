@@ -6,6 +6,8 @@ spring:
     name: API_GATEWAY
   cloud:
     gateway:
+      websocket:
+        enabled: true
       routes:
         - id: user-service
           uri: lb://USER-SERVICE
@@ -16,10 +18,12 @@ spring:
           uri: lb://DRIVER-SERVICE
           predicates:
             - Path=/driver/**
+
         - id: ride-service
           uri: lb://RIDE-SERVICE
           predicates:
             - Path=/ride/**
+
         - id: location-service
           uri: lb://LOCATION-SERVICE
           predicates:
@@ -46,7 +50,6 @@ spring:
             allowedHeaders:
               - "*"
             allowCredentials: true
-
 eureka:
   client:
     register-with-eureka: true
